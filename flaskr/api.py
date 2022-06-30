@@ -1,26 +1,13 @@
-from flask import Flask
-from flask import request
-from dotenv import load_dotenv
-import os
 import psycopg2
-from psycopg2 import pool
+from flask import Blueprint, request
+from . import db
 
-load_dotenv()
-
-DATABASE = os.getenv("DATABASE")
-DATABASE_USERNAME = os.getenv("DATABASE_USERNAME")
-DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
-
-app = Flask(__name__)
-
-postgreSQL_pool = psycopg2.pool.SimpleConnectionPool(1, 10, database=DATABASE,
-                                                     user=DATABASE_USERNAME,
-                                                     password=DATABASE_PASSWORD)
+bp = Blueprint('api', __name__, url_prefix='/api/v1')
 
 
-@app.route("/api/v1/resources/users", methods=["POST"])
+@bp.route("/resources/users", methods=["POST"])
 def add_user():
-    conn = postgreSQL_pool.getconn()
+    conn = db.get_conn()
     cursor = conn.cursor()
 
     body = request.json
@@ -43,7 +30,6 @@ def add_user():
     result = cursor.fetchone()
 
     cursor.close()
-    postgreSQL_pool.putconn(conn)
 
     return {
         "result": {
@@ -73,14 +59,14 @@ def validate_user_data(user_data) -> bool:
     return True
 
 
-@app.route("/api/v1/resources/users/<user_id>", methods=["GET"])
+@bp.route("/resources/users/<user_id>", methods=["GET"])
 def get_user(user_id):
     try:
         user_id = int(user_id)
     except ValueError:
         return {"error": {"msg": "User id is invalid."}}, 400
 
-    conn = postgreSQL_pool.getconn()
+    conn = db.get_conn()
     cursor = conn.cursor()
 
     try:
@@ -96,7 +82,6 @@ def get_user(user_id):
         return {"error": {"msg": str(error)}}, 400
 
     cursor.close()
-    postgreSQL_pool.putconn(conn)
 
     if user:
         return {
@@ -111,14 +96,14 @@ def get_user(user_id):
         return {"error": {"msg": f"Could not find a user with ID {user_id}."}}, 400
 
 
-@app.route("/api/v1/resources/users/<user_id>", methods=["PUT"])
+@bp.route("/resources/users/<user_id>", methods=["PUT"])
 def update_user(user_id):
     try:
         user_id = int(user_id)
     except ValueError:
         return {"error": {"msg": "User id is invalid."}}, 400
 
-    conn = postgreSQL_pool.getconn()
+    conn = db.get_conn()
     cursor = conn.cursor()
 
     body = request.json
@@ -142,7 +127,6 @@ def update_user(user_id):
     result = cursor.fetchone()
 
     cursor.close()
-    postgreSQL_pool.putconn(conn)
 
     return {
         "result": {
