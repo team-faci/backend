@@ -1,7 +1,10 @@
 import os
+from dotenv import load_dotenv
 import psycopg2
 from psycopg2 import pool
 from flask import g, current_app
+
+load_dotenv()
 
 
 def create_pool():
