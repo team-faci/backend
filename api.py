@@ -183,6 +183,35 @@ try:
                 }
             }
 
+    # Get a list of contacts for this event
+    @app.route("/api/v1/resources/users/<user_id>/events/<event_id>/contacts", methods=["GET"])
+        def get_contacts_for_event(user_id, event_id):
+            try:
+                user_id = int(user_id)
+            except ValueError:
+                return {"error": {"msg": "User id is invalid."}}, 400
+
+            try:
+                cursor.execute("""
+                                SELECT json_agg(row_to_json( (SELECT r FROM (SELECT first_name, last_name, email, phone_no, linkedin, title, contacts.notes ) r) ))
+                                FROM contacts
+                                JOIN attendance
+                                	ON contacts.contact_id = attendance.contact_id
+                                JOIN events
+                                	ON events.event_id = attendance.event_id
+                                	AND events.event_id = %s;
+                                """,
+                               (event_id))
+
+                user = cursor.fetchone()
+            except psycopg2.Error as error:
+                return {"error": {"msg": str(error)}}, 400
+
+            if user:
+                return user
+            else:
+                return {"error": {"msg": f"Could not find a user with ID {user_id}."}}, 400
+
 
 except BaseException as err:
     print(err)
