@@ -140,6 +140,49 @@ try:
             }
         }
 
+    # Add a new contact for this event
+    @app.route("/api/v1/resources/users/<user_id>/events/<event_id>/contacts", methods=["POST"])
+        def add_new_contact_to_event(user_id, event_id):
+            body = request.json
+            if validate_user_data(body):
+                contact = body["contact"]
+                new_contact_notes = body["notes"]
+            else:
+                return {"error": {"msg": "Input is invalid."}}, 400
+
+            try:
+                cursor.execute("""
+                                SELECT add_new_event(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                """,
+                               (user_id,
+                               contact["firstName"],
+                               contact["lastName"],
+                               contact["email"],
+                               contact["phoneNo"],
+                               contact["linkedin"],
+                               contact["title"],
+                               contact["notes"],
+                               event_id,
+                               new_contact_notes))
+
+                conn.commit()
+            except psycopg2.Error as error:
+                return {"error": {"msg": str(error)}}, 400
+
+            result = cursor.fetchone()
+
+            return {
+                "result": {
+                    "firstName": result[0],
+                    "lastName": result[1],
+                    "email": result[2],
+                    "phoneNo": result[3],
+                    "linkedin": result[4],
+                    "title": result[5],
+                    "notes": result[6],
+                }
+            }
+
 
 except BaseException as err:
     print(err)
